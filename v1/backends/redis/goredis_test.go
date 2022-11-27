@@ -1,15 +1,15 @@
 package redis_test
 
 import (
-	"github.com/RichardKnop/machinery/v1/backends/iface"
+	"github.com/yukimochi/machinery-v1/v1/backends/iface"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/RichardKnop/machinery/v1/backends/redis"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/stretchr/testify/assert"
+	"github.com/yukimochi/machinery-v1/v1/backends/redis"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 func getRedisG() iface.Backend {

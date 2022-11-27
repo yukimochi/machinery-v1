@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/RichardKnop/machinery/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/config"
 )
 
 // Backend represents a base backend structure

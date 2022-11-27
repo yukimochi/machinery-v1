@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"context"
 	"errors"
 	"log"
 	"reflect"
@@ -10,13 +9,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/RichardKnop/machinery/v1"
-	"github.com/RichardKnop/machinery/v1/backends/result"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/tasks"
-
-	brokersiface "github.com/RichardKnop/machinery/v1/brokers/iface"
+	"github.com/yukimochi/machinery-v1/v1"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 type ascendingInt64s []int64
@@ -25,21 +20,7 @@ func (a ascendingInt64s) Len() int           { return len(a) }
 func (a ascendingInt64s) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ascendingInt64s) Less(i, j int) bool { return a[i] < a[j] }
 
-type Server interface {
-	GetBroker() brokersiface.Broker
-	GetConfig() *config.Config
-	RegisterTasks(namedTaskFuncs map[string]interface{}) error
-	SendTaskWithContext(ctx context.Context, signature *tasks.Signature) (*result.AsyncResult, error)
-	SendTask(signature *tasks.Signature) (*result.AsyncResult, error)
-	SendChainWithContext(ctx context.Context, chain *tasks.Chain) (*result.ChainAsyncResult, error)
-	SendChain(chain *tasks.Chain) (*result.ChainAsyncResult, error)
-	SendGroupWithContext(ctx context.Context, group *tasks.Group, sendConcurrency int) ([]*result.AsyncResult, error)
-	SendGroup(group *tasks.Group, sendConcurrency int) ([]*result.AsyncResult, error)
-	SendChordWithContext(ctx context.Context, chord *tasks.Chord, sendConcurrency int) (*result.ChordAsyncResult, error)
-	SendChord(chord *tasks.Chord, sendConcurrency int) (*result.ChordAsyncResult, error)
-}
-
-func testAll(server Server, t *testing.T) {
+func testAll(server *machinery.Server, t *testing.T) {
 	testSendTask(server, t)
 	testSendGroup(server, t, 0) // with unlimited concurrency
 	testSendGroup(server, t, 2) // with limited concurrency (2 parallel tasks at the most)
@@ -51,7 +32,7 @@ func testAll(server Server, t *testing.T) {
 	testDelay(server, t)
 }
 
-func testSendTask(server Server, t *testing.T) {
+func testSendTask(server *machinery.Server, t *testing.T) {
 	addTask := newAddTask(1, 1)
 
 	asyncResult, err := server.SendTask(addTask)
@@ -100,7 +81,7 @@ func testSendTask(server Server, t *testing.T) {
 	}
 }
 
-func testSendGroup(server Server, t *testing.T, sendConcurrency int) {
+func testSendGroup(server *machinery.Server, t *testing.T, sendConcurrency int) {
 	t1, t2, t3 := newAddTask(1, 1), newAddTask(2, 2), newAddTask(5, 6)
 
 	group, err := tasks.NewGroup(t1, t2, t3)
@@ -145,7 +126,7 @@ func testSendGroup(server Server, t *testing.T, sendConcurrency int) {
 	}
 }
 
-func testSendChain(server Server, t *testing.T) {
+func testSendChain(server *machinery.Server, t *testing.T) {
 	t1, t2, t3 := newAddTask(2, 2), newAddTask(5, 6), newMultipleTask(4)
 
 	chain, err := tasks.NewChain(t1, t2, t3)
@@ -176,7 +157,7 @@ func testSendChain(server Server, t *testing.T) {
 	}
 }
 
-func testSendChord(server Server, t *testing.T) {
+func testSendChord(server *machinery.Server, t *testing.T) {
 	t1, t2, t3, t4 := newAddTask(1, 1), newAddTask(2, 2), newAddTask(5, 6), newMultipleTask()
 
 	group, err := tasks.NewGroup(t1, t2, t3)
@@ -212,7 +193,7 @@ func testSendChord(server Server, t *testing.T) {
 	}
 }
 
-func testReturnJustError(server Server, t *testing.T) {
+func testReturnJustError(server *machinery.Server, t *testing.T) {
 	// Fails, returns error as the only value
 	task := newErrorTask("Test error", true)
 	asyncResult, err := server.SendTask(task)
@@ -240,7 +221,7 @@ func testReturnJustError(server Server, t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func testReturnMultipleValues(server Server, t *testing.T) {
+func testReturnMultipleValues(server *machinery.Server, t *testing.T) {
 	// Successful task with multiple return values
 	task := newMultipleReturnTask("foo", "bar", false)
 
@@ -289,7 +270,7 @@ func testReturnMultipleValues(server Server, t *testing.T) {
 	assert.Error(t, err)
 }
 
-func testPanic(server Server, t *testing.T) {
+func testPanic(server *machinery.Server, t *testing.T) {
 	task := &tasks.Signature{Name: "panic"}
 	asyncResult, err := server.SendTask(task)
 	if err != nil {
@@ -303,7 +284,7 @@ func testPanic(server Server, t *testing.T) {
 	assert.Equal(t, "oops", err.Error())
 }
 
-func testDelay(server Server, t *testing.T) {
+func testDelay(server *machinery.Server, t *testing.T) {
 	now := time.Now().UTC()
 	eta := now.Add(100 * time.Millisecond)
 	task := newDelayTask(eta)
@@ -340,7 +321,11 @@ func testDelay(server Server, t *testing.T) {
 	}
 }
 
-func registerTestTasks(server Server) {
+func testSetup(cnf *config.Config) *machinery.Server {
+	server, err := machinery.NewServer(cnf)
+	if err != nil {
+		log.Fatal(err, "Could not initialize server")
+	}
 
 	tasks := map[string]interface{}{
 		"add": func(args ...int64) (int64, error) {
@@ -386,18 +371,7 @@ func registerTestTasks(server Server) {
 			return time.Now().UTC().UnixNano(), nil
 		},
 	}
-
 	server.RegisterTasks(tasks)
-}
-
-func testSetup(cnf *config.Config) Server {
-
-	server, err := machinery.NewServer(cnf)
-	if err != nil {
-		log.Fatal(err, "Could not initialize server")
-	}
-
-	registerTestTasks(server)
 
 	return server
 }

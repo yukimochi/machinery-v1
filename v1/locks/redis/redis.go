@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/go-redis/redis"
+	"github.com/yukimochi/machinery-v1/v1/config"
 )
 
 var (
@@ -48,7 +48,7 @@ func New(cnf *config.Config, addrs []string, db, retries int) Lock {
 	return lock
 }
 
-//try lock with retries
+// try lock with retries
 func (r Lock) LockWithRetries(key string, value int64) error {
 	for i := 0; i <= r.retries; i++ {
 		err := r.Lock(key, value)

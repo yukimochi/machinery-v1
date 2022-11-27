@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RichardKnop/machinery/v1/log"
+	"github.com/yukimochi/machinery-v1/v1/log"
 )
 
 // Closure - a useful closure we can use when there is a problem

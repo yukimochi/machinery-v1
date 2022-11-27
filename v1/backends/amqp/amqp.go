@@ -20,12 +20,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RichardKnop/machinery/v1/backends/iface"
-	"github.com/RichardKnop/machinery/v1/common"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/log"
-	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/streadway/amqp"
+	"github.com/yukimochi/machinery-v1/v1/backends/iface"
+	"github.com/yukimochi/machinery-v1/v1/common"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/log"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 // Backend represents an AMQP result backend

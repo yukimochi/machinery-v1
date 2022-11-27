@@ -3,11 +3,11 @@ package amqp_test
 import (
 	"testing"
 
-	"github.com/RichardKnop/machinery/v1/brokers/amqp"
-	"github.com/RichardKnop/machinery/v1/brokers/iface"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/stretchr/testify/assert"
+	"github.com/yukimochi/machinery-v1/v1/brokers/amqp"
+	"github.com/yukimochi/machinery-v1/v1/brokers/iface"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 func TestAdjustRoutingKey(t *testing.T) {

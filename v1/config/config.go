@@ -5,11 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"cloud.google.com/go/pubsub"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -30,10 +25,6 @@ var (
 			BindingKey:    "machinery_task",
 			PrefetchCount: 3,
 		},
-		DynamoDB: &DynamoDBConfig{
-			TaskStatesTable: "task_states",
-			GroupMetasTable: "group_metas",
-		},
 		Redis: &RedisConfig{
 			MaxIdle:                3,
 			IdleTimeout:            240,
@@ -43,9 +34,6 @@ var (
 			NormalTasksPollPeriod:  1000,
 			DelayedTasksPollPeriod: 500,
 		},
-		GCPPubSub: &GCPPubSubConfig{
-			Client: nil,
-		},
 	}
 
 	reloadDelay = time.Second * 10
@@ -53,21 +41,17 @@ var (
 
 // Config holds all configuration for our program
 type Config struct {
-	Broker                  string           `yaml:"broker" envconfig:"BROKER"`
-	Lock                    string           `yaml:"lock" envconfig:"LOCK"`
-	MultipleBrokerSeparator string           `yaml:"multiple_broker_separator" envconfig:"MULTIPLE_BROKEN_SEPARATOR"`
-	DefaultQueue            string           `yaml:"default_queue" envconfig:"DEFAULT_QUEUE"`
-	ResultBackend           string           `yaml:"result_backend" envconfig:"RESULT_BACKEND"`
-	ResultsExpireIn         int              `yaml:"results_expire_in" envconfig:"RESULTS_EXPIRE_IN"`
-	AMQP                    *AMQPConfig      `yaml:"amqp"`
-	SQS                     *SQSConfig       `yaml:"sqs"`
-	Redis                   *RedisConfig     `yaml:"redis"`
-	GCPPubSub               *GCPPubSubConfig `yaml:"-" ignored:"true"`
-	MongoDB                 *MongoDBConfig   `yaml:"-" ignored:"true"`
+	Broker                  string       `yaml:"broker" envconfig:"BROKER"`
+	Lock                    string       `yaml:"lock" envconfig:"LOCK"`
+	MultipleBrokerSeparator string       `yaml:"multiple_broker_separator" envconfig:"MULTIPLE_BROKEN_SEPARATOR"`
+	DefaultQueue            string       `yaml:"default_queue" envconfig:"DEFAULT_QUEUE"`
+	ResultBackend           string       `yaml:"result_backend" envconfig:"RESULT_BACKEND"`
+	ResultsExpireIn         int          `yaml:"results_expire_in" envconfig:"RESULTS_EXPIRE_IN"`
+	AMQP                    *AMQPConfig  `yaml:"amqp"`
+	Redis                   *RedisConfig `yaml:"redis"`
 	TLSConfig               *tls.Config
 	// NoUnixSignals - when set disables signal handling in machinery
-	NoUnixSignals bool            `yaml:"no_unix_signals" envconfig:"NO_UNIX_SIGNALS"`
-	DynamoDB      *DynamoDBConfig `yaml:"dynamodb"`
+	NoUnixSignals bool `yaml:"no_unix_signals" envconfig:"NO_UNIX_SIGNALS"`
 }
 
 // QueueBindingArgs arguments which are used when binding to the exchange
@@ -85,22 +69,6 @@ type AMQPConfig struct {
 	BindingKey       string           `yaml:"binding_key" envconfig:"AMQP_BINDING_KEY"`
 	PrefetchCount    int              `yaml:"prefetch_count" envconfig:"AMQP_PREFETCH_COUNT"`
 	AutoDelete       bool             `yaml:"auto_delete" envconfig:"AMQP_AUTO_DELETE"`
-}
-
-// DynamoDBConfig wraps DynamoDB related configuration
-type DynamoDBConfig struct {
-	Client          *dynamodb.DynamoDB
-	TaskStatesTable string `yaml:"task_states_table" envconfig:"TASK_STATES_TABLE"`
-	GroupMetasTable string `yaml:"group_metas_table" envconfig:"GROUP_METAS_TABLE"`
-}
-
-// SQSConfig wraps SQS related configuration
-type SQSConfig struct {
-	Client          *sqs.SQS
-	WaitTimeSeconds int `yaml:"receive_wait_time_seconds" envconfig:"SQS_WAIT_TIME_SECONDS"`
-	// https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html
-	// visibility timeout should default to nil to use the overall visibility timeout for the queue
-	VisibilityTimeout *int `yaml:"receive_visibility_timeout" envconfig:"SQS_VISIBILITY_TIMEOUT"`
 }
 
 // RedisConfig ...
@@ -149,18 +117,6 @@ type RedisConfig struct {
 
 	// MasterName specifies a redis master name in order to configure a sentinel-backed redis FailoverClient
 	MasterName string `yaml:"master_name" envconfig:"REDIS_MASTER_NAME"`
-}
-
-// GCPPubSubConfig wraps GCP PubSub related configuration
-type GCPPubSubConfig struct {
-	Client       *pubsub.Client
-	MaxExtension time.Duration
-}
-
-// MongoDBConfig ...
-type MongoDBConfig struct {
-	Client   *mongo.Client
-	Database string
 }
 
 // Decode from yaml to map (any field whose type or pointer-to-type implements

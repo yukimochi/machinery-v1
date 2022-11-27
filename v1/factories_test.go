@@ -8,19 +8,16 @@ import (
 	"testing"
 	"unsafe"
 
-	machinery "github.com/RichardKnop/machinery/v1"
-	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/stretchr/testify/assert"
+	machinery "github.com/yukimochi/machinery-v1/v1"
+	"github.com/yukimochi/machinery-v1/v1/config"
 
-	amqpbroker "github.com/RichardKnop/machinery/v1/brokers/amqp"
-	brokeriface "github.com/RichardKnop/machinery/v1/brokers/iface"
-	redisbroker "github.com/RichardKnop/machinery/v1/brokers/redis"
-	sqsbroker "github.com/RichardKnop/machinery/v1/brokers/sqs"
+	amqpbroker "github.com/yukimochi/machinery-v1/v1/brokers/amqp"
+	brokeriface "github.com/yukimochi/machinery-v1/v1/brokers/iface"
+	redisbroker "github.com/yukimochi/machinery-v1/v1/brokers/redis"
 
-	amqpbackend "github.com/RichardKnop/machinery/v1/backends/amqp"
-	memcachebackend "github.com/RichardKnop/machinery/v1/backends/memcache"
-	mongobackend "github.com/RichardKnop/machinery/v1/backends/mongo"
-	redisbackend "github.com/RichardKnop/machinery/v1/backends/redis"
+	amqpbackend "github.com/yukimochi/machinery-v1/v1/backends/amqp"
+	redisbackend "github.com/yukimochi/machinery-v1/v1/backends/redis"
 )
 
 var (
@@ -186,42 +183,6 @@ func TestBrokerFactory(t *testing.T) {
 			fmt.Sprintf("conn = %v, want %v", actual, expected),
 		)
 	}
-
-	// 3) AWS SQS
-	cnf = config.Config{
-		Broker:       "https://sqs.us-east-2.amazonaws.com/123456789012",
-		DefaultQueue: "machinery_tasks",
-	}
-
-	actual, err = machinery.BrokerFactory(&cnf)
-	if assert.NoError(t, err) {
-		_, isAWSSQSBroker := actual.(*sqsbroker.Broker)
-		assert.True(
-			t,
-			isAWSSQSBroker,
-			"Broker should be instance of *brokers.AWSSQSBroker",
-		)
-	}
-
-	// 4) local SQS config should pass with special env variable
-	// AWS SQS Invalid SQS Check
-	cnf = config.Config{
-		Broker:       "http://localhost:5672/some-queue",
-		DefaultQueue: "machinery_tasks",
-	}
-
-	os.Setenv("DISABLE_STRICT_SQS_CHECK", "yes")
-	actual, err = machinery.BrokerFactory(&cnf)
-	if assert.NoError(t, err) {
-		_, isAWSSQSBroker := actual.(*sqsbroker.Broker)
-		assert.True(
-			t,
-			isAWSSQSBroker,
-			"Broker should be instance of *brokers.AWSSQSBroker",
-		)
-	}
-	os.Unsetenv("DISABLE_STRICT_SQS_CHECK")
-
 }
 
 func brokerEqual(x, y brokeriface.Broker) bool {
@@ -305,23 +266,6 @@ func TestBackendFactory(t *testing.T) {
 		)
 	}
 
-	// 2) Memcache backend test
-
-	cnf = config.Config{
-		ResultBackend: "memcache://10.0.0.1:11211,10.0.0.2:11211",
-	}
-
-	actual, err = machinery.BackendFactory(&cnf)
-	if assert.NoError(t, err) {
-		servers := []string{"10.0.0.1:11211", "10.0.0.2:11211"}
-		expected := memcachebackend.New(&cnf, servers)
-		assert.True(
-			t,
-			reflect.DeepEqual(actual, expected),
-			fmt.Sprintf("conn = %v, want %v", actual, expected),
-		)
-	}
-
 	// 2) Redis backend test
 
 	// with password
@@ -367,24 +311,6 @@ func TestBackendFactory(t *testing.T) {
 			reflect.DeepEqual(actual, expected),
 			fmt.Sprintf("conn = %v, want %v", actual, expected),
 		)
-	}
-
-	// 4) MongoDB backend test
-	cnf = config.Config{
-		ResultBackend:   "mongodb://mongo:27017",
-		ResultsExpireIn: 30,
-	}
-
-	actual, err = machinery.BackendFactory(&cnf)
-	if assert.NoError(t, err) {
-		expected, err := mongobackend.New(&cnf)
-		if assert.NoError(t, err) {
-			assert.True(
-				t,
-				reflect.DeepEqual(actual, expected),
-				fmt.Sprintf("conn = %v, want %v", actual, expected),
-			)
-		}
 	}
 }
 

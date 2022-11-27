@@ -1,36 +1,11 @@
-[1]: https://raw.githubusercontent.com/RichardKnop/assets/master/machinery/example_worker.png
-[2]: https://raw.githubusercontent.com/RichardKnop/assets/master/machinery/example_worker_receives_tasks.png
-[3]: http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png
-
 ## Machinery
 
 Machinery is an asynchronous task queue/job queue based on distributed message passing.
 
-[![Travis Status for RichardKnop/machinery](https://travis-ci.org/RichardKnop/machinery.svg?branch=master&label=linux+build)](https://travis-ci.org/RichardKnop/machinery)
-[![godoc for RichardKnop/machinery](https://godoc.org/github.com/nathany/looper?status.svg)](http://godoc.org/github.com/RichardKnop/machinery/v1)
-[![codecov for RichardKnop/machinery](https://codecov.io/gh/RichardKnop/machinery/branch/master/graph/badge.svg)](https://codecov.io/gh/RichardKnop/machinery)
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/RichardKnop/machinery)](https://goreportcard.com/report/github.com/RichardKnop/machinery)
-[![GolangCI](https://golangci.com/badges/github.com/RichardKnop/machinery.svg)](https://golangci.com)
-[![OpenTracing Badge](https://img.shields.io/badge/OpenTracing-enabled-blue.svg)](http://opentracing.io)
-
-[![Sourcegraph for RichardKnop/machinery](https://sourcegraph.com/github.com/RichardKnop/machinery/-/badge.svg)](https://sourcegraph.com/github.com/RichardKnop/machinery?badge)
-[![Donate Bitcoin](https://img.shields.io/badge/donate-bitcoin-orange.svg)](https://richardknop.github.io/donate/)
-
 ---
 
-* [V2 Experiment](#v2-experiment)
 * [First Steps](#first-steps)
 * [Configuration](#configuration)
-  * [Lock](#lock)
-  * [Broker](#broker)
-  * [DefaultQueue](#defaultqueue)
-  * [ResultBackend](#resultbackend)
-  * [ResultsExpireIn](#resultsexpirein)
-  * [AMQP](#amqp-2)
-  * [DynamoDB](#dynamodb)
-  * [Redis](#redis-2)
-  * [GCPPubSub](#gcppubsub)
 * [Custom Logger](#custom-logger)
 * [Server](#server)
 * [Workers](#workers)
@@ -47,71 +22,33 @@ Machinery is an asynchronous task queue/job queue based on distributed message p
   * [Groups](#groups)
   * [Chords](#chords)
   * [Chains](#chains)
-* [Periodic Tasks & Workflows](#periodic-tasks--workflows)
-  * [Periodic Tasks](#periodic-tasks)
-  * [Periodic Groups](#periodic-groups)
-  * [Periodic Chains](#periodic-chains)
-  * [Periodic Chords](#periodic-chords)
 * [Development](#development)
   * [Requirements](#requirements)
   * [Dependencies](#dependencies)
   * [Testing](#testing)
-
-### V2 Experiment
-
-Please be advised that V2 is work in progress and breaking changes can and will happen until it is ready.
-
-You can use the current V2 in order to avoid having to import all dependencies for brokers and backends you are not using.
-
-Instead of factory, you will need to inject broker and backend objects to the server constructor:
-
-```go
-import (
-  "github.com/RichardKnop/machinery/v2"
-  backendsiface "github.com/RichardKnop/machinery/v1/backends/iface"
-  brokersiface "github.com/RichardKnop/machinery/v1/brokers/iface"
-)
-
-var broker brokersiface.Broker
-var backend backendsiface.Backend
-server, err := machinery.NewServer(cnf, broker, backend)
-if err != nil {
-  // do something with the error
-}
-```
 
 ### First Steps
 
 Add the Machinery library to your $GOPATH/src:
 
 ```sh
-go get github.com/RichardKnop/machinery/v1
+go get github.com/yukimochi/machinery-v1/v1
 ```
 
 First, you will need to define some tasks. Look at sample tasks in `example/tasks/tasks.go` to see a few examples.
 
-Second, you will need to launch a worker process with one of these commands (v2 is recommended since it doesn't import dependencies for all brokers / backends, only those you actually need):
+Second, you will need to launch a worker process:
 
 ```sh
-go run example/v2/amqp/main.go worker
-go run example/v2/redigo/main.go worker // Redis with redigo driver
-go run example/v2/go-redis/main.go worker // Redis with Go Redis driver
-
-go run example/v1/amqp/main.go worker
-go run example/v1/redis/main.go worker
+go run example/machinery.go -c example/config.yml worker
 ```
 
 ![Example worker][1]
 
-Finally, once you have a worker running and waiting for tasks to consume, send some tasks with one of these commands (v2 is recommended since it doesn't import dependencies for all brokers / backends, only those you actually need):
+Finally, once you have a worker running and waiting for tasks to consume, send some tasks:
 
 ```sh
-go run example/v2/amqp/main.go send
-go run example/v2/redigo/main.go send // Redis with redigo driver
-go run example/v2/go-redis/main.go send // Redis with Go Redis driver
-
-go run example/v1/amqp/main.go send
-go run example/v1/redis/main.go send
+go run example/machinery.go -c example/config.yml send
 ```
 
 You will be able to see the tasks being processed asynchronously by the worker:
@@ -123,7 +60,7 @@ You will be able to see the tasks being processed asynchronously by the worker:
 The [config](/v1/config/config.go) package has convenience methods for loading configuration from environment variables or a YAML file. For example, load configuration from environment variables:
 
 ```go
-cnf, err := config.NewFromEnvironment()
+cnf, err := config.NewFromEnvironment(true)
 ```
 
 Or load from YAML file:
@@ -135,20 +72,6 @@ cnf, err := config.NewFromYaml("config.yml", true)
 Second boolean flag enables live reloading of configuration every 10 seconds. Use `false` to disable live reloading.
 
 Machinery configuration is encapsulated by a `Config` struct and injected as a dependency to objects that need it.
-
-#### Lock
-
-##### Redis
-
-Use Redis URL in one of these formats:
-
-```
-redis://[password@]host[port][/db_num]
-```
-
-For example:
-
-1. `redis://localhost:6379`, or with password `redis://password@localhost:6379`
 
 #### Broker
 
@@ -166,8 +89,6 @@ For example:
 
 1. `amqp://guest:guest@localhost:5672`
 
-AMQP also supports multiples brokers urls. You need to specify the URL separator in the `MultipleBrokerSeparator` field.
-
 ##### Redis
 
 Use Redis URL in one of these formats:
@@ -181,69 +102,6 @@ For example:
 
 1. `redis://localhost:6379`, or with password `redis://password@localhost:6379`
 2. `redis+socket://password@/path/to/file.sock:/0`
-
-##### AWS SQS
-
-Use AWS SQS URL in the format:
-
-```
-https://sqs.us-east-2.amazonaws.com/123456789012
-```
-
-See [AWS SQS docs](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html) for more information.
-Also, configuring `AWS_REGION` is required, or an error would be thrown.
-
-To use a manually configured SQS Client:
-
-```go
-var sqsClient = sqs.New(session.Must(session.NewSession(&aws.Config{
-  Region:         aws.String("YOUR_AWS_REGION"),
-  Credentials:    credentials.NewStaticCredentials("YOUR_AWS_ACCESS_KEY", "YOUR_AWS_ACCESS_SECRET", ""),
-  HTTPClient:     &http.Client{
-    Timeout: time.Second * 120,
-  },
-})))
-var visibilityTimeout = 20
-var cnf = &config.Config{
-  Broker:          "YOUR_SQS_URL"
-  DefaultQueue:    "machinery_tasks",
-  ResultBackend:   "YOUR_BACKEND_URL",
-  SQS: &config.SQSConfig{
-    Client: sqsClient,
-    // if VisibilityTimeout is nil default to the overall visibility timeout setting for the queue
-    // https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html
-    VisibilityTimeout: &visibilityTimeout,
-    WaitTimeSeconds: 30,
-  },
-}
-```
-
-##### GCP Pub/Sub
-
-Use GCP Pub/Sub URL in the format:
-
-```
-gcppubsub://YOUR_GCP_PROJECT_ID/YOUR_PUBSUB_SUBSCRIPTION_NAME
-```
-
-To use a manually configured Pub/Sub Client:
-
-```go
-pubsubClient, err := pubsub.NewClient(
-    context.Background(),
-    "YOUR_GCP_PROJECT_ID",
-    option.WithServiceAccountFile("YOUR_GCP_SERVICE_ACCOUNT_FILE"),
-)
-
-cnf := &config.Config{
-  Broker:          "gcppubsub://YOUR_GCP_PROJECT_ID/YOUR_PUBSUB_SUBSCRIPTION_NAME"
-  DefaultQueue:    "YOUR_PUBSUB_TOPIC_NAME",
-  ResultBackend:   "YOUR_BACKEND_URL",
-  GCPPubSub: config.GCPPubSubConfig{
-    Client: pubsubClient,
-  },
-}
-```
 
 #### DefaultQueue
 
@@ -269,20 +127,6 @@ For example:
 1. `redis://localhost:6379`, or with password `redis://password@localhost:6379`
 2. `redis+socket://password@/path/to/file.sock:/0`
 3. cluster `redis://host1:port1,host2:port2,host3:port3`
-4. cluster with password `redis://pass@host1:port1,host2:port2,host3:port3`
-
-##### Memcache
-
-Use Memcache URL in the format:
-
-```
-memcache://host1[:port1][,host2[:port2],...[,hostN[:portN]]]
-```
-
-For example:
-
-1. `memcache://localhost:11211` for a single instance, or
-2. `memcache://10.0.0.1:11211,10.0.0.2:11211` for a cluster
 
 ##### AMQP
 
@@ -296,22 +140,7 @@ For example:
 
 1. `amqp://guest:guest@localhost:5672`
 
-> Keep in mind AMQP is not recommended as a result backend. See [Keeping Results](https://github.com/RichardKnop/machinery#keeping-results)
-
-##### MongoDB
-
-Use Mongodb URL in the format:
-
-```
-mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
-```
-
-For example:
-
-1. `mongodb://localhost:27017/taskresults`
-
-See [MongoDB docs](https://docs.mongodb.org/manual/reference/connection-string/) for more information.
-
+> Keep in mind AMQP is not recommended as a result backend. See [Keeping Results](https://github.com/yukimochi/machinery-v1#keeping-results)
 
 #### ResultsExpireIn
 
@@ -326,34 +155,6 @@ RabbitMQ related configuration. Not necessary if you are using other broker/back
 * `QueueBindingArguments`: an optional map of additional arguments used when binding to an AMQP queue
 * `BindingKey`: The queue is bind to the exchange with this key, e.g. `machinery_task`
 * `PrefetchCount`: How many tasks to prefetch (set to `1` if you have long running tasks)
-
-#### DynamoDB
-
-DynamoDB related configuration. Not necessary if you are using other backend.
-* `TaskStatesTable`: Custom table name for saving task states. Default one is `task_states`, and make sure to create this table in your AWS admin first, using `TaskUUID` as table's primary key.
-* `GroupMetasTable`: Custom table name for saving group metas. Default one is `group_metas`, and make sure to create this table in your AWS admin first, using `GroupUUID` as table's primary key.
-For example:
-
-```
-dynamodb:
-  task_states_table: 'task_states'
-  group_metas_table: 'group_metas'
-```
-If these tables are not found, an fatal error would be thrown.
-
-If you wish to expire the records, you can configure the `TTL` field in AWS admin for these tables. The `TTL` field is set based on the `ResultsExpireIn` value in the Server's config. See https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/howitworks-ttl.html for more information.
-
-#### Redis
-
-Redis related configuration. Not necessary if you are using other backend.
-
-See: [config](/v1/config/config.go) (TODO)
-
-#### GCPPubSub
-
-GCPPubSub related configuration. Not necessary if you are using other backend.
-
-See: [config](/v1/config/config.go) (TODO)
 
 ### Custom Logger
 
@@ -375,7 +176,7 @@ type Interface interface {
 }
 ```
 
-Then just set the logger in your setup code by calling `Set` function exported by `github.com/RichardKnop/machinery/v1/log` package:
+Then just set the logger in your setup code by calling `Set` function exported by `github.com/yukimochi/machinery-v1/v1/log` package:
 
 ```go
 log.Set(myCustomLogger)
@@ -387,15 +188,15 @@ A Machinery library must be instantiated before use. The way this is done is by 
 
 ```go
 import (
-  "github.com/RichardKnop/machinery/v1/config"
-  "github.com/RichardKnop/machinery/v1"
+  "github.com/yukimochi/machinery-v1/v1/config"
+  "github.com/yukimochi/machinery-v1/v1"
 )
 
 var cnf = &config.Config{
-  Broker:        "amqp://guest:guest@localhost:5672/",
-  DefaultQueue:  "machinery_tasks",
-  ResultBackend: "amqp://guest:guest@localhost:5672/",
-  AMQP: &config.AMQPConfig{
+  Broker:             "amqp://guest:guest@localhost:5672/",
+  DefaultQueue:       "machinery_tasks",
+  ResultBackend:      "amqp://guest:guest@localhost:5672/",
+  AMQP:               &config.AMQPConfig{
     Exchange:     "machinery_exchange",
     ExchangeType: "direct",
     BindingKey:   "machinery_task",
@@ -615,7 +416,7 @@ Tasks can be called by passing an instance of `Signature` to an `Server` instanc
 
 ```go
 import (
-  "github.com/RichardKnop/machinery/v1/tasks"
+  "github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 signature := &tasks.Signature{
@@ -695,7 +496,7 @@ const (
 )
 ```
 
-> When using AMQP as a result backend, task states will be persisted in separate queues for each task. Although RabbitMQ can scale up to thousands of queues, it is strongly advised to use a better suited result backend (e.g. Memcache) when you are expecting to run a large number of parallel tasks.
+> When using AMQP as a result backend, task states will be persisted in separate queues for each task. Although RabbitMQ can scale up to thousands of queues, it is strongly advised to use a better suited result backend when you are expecting to run a large number of parallel tasks.
 
 ```go
 // TaskResult represents an actual return value of a processed task
@@ -737,7 +538,7 @@ fmt.Printf("Current state of %v task is:\n", taskState.TaskUUID)
 fmt.Println(taskState.State)
 ```
 
-There are couple of convenient methods to inspect the task status:
+There are couple of convenient me methods to inspect the task status:
 
 ```go
 asyncResult.GetState().IsCompleted()
@@ -780,8 +581,8 @@ Running a single asynchronous task is fine but often you will want to design a w
 
 ```go
 import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
+  "github.com/yukimochi/machinery-v1/v1/tasks"
+  "github.com/yukimochi/machinery-v1/v1"
 )
 
 signature1 := tasks.Signature{
@@ -841,8 +642,8 @@ for _, asyncResult := range asyncResults {
 
 ```go
 import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
+  "github.com/yukimochi/machinery-v1/v1/tasks"
+  "github.com/yukimochi/machinery-v1/v1"
 )
 
 signature1 := tasks.Signature{
@@ -917,8 +718,8 @@ for _, result := range results {
 
 ```go
 import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
+  "github.com/yukimochi/machinery-v1/v1/tasks"
+  "github.com/yukimochi/machinery-v1/v1"
 )
 
 signature1 := tasks.Signature{
@@ -967,19 +768,16 @@ if err != nil {
 }
 ```
 
-The above example executes task1, then task2 and then task3. When a task is completed successfully, the result is appended to the end of list of arguments for the next task in the chain. Therefore what would end up happening is:
+The above example executes task1, then task2 and then task3, passing the result of each task to the next task in the chain. Therefore what would end up happening is:
 
 ```
-multiply(4, add(5, 5, add(1, 1)))
+multiply(add(add(1, 1), 5, 5), 4)
 ```
 
 More explicitly:
 
 ```
-  4 * (5 + 5 + (1 + 1))   # task1: add(1, 1)        returns 2
-= 4 * (5 + 5 + 2)         # task2: add(5, 5, 2)     returns 12
-= 4 * (12)                # task3: multiply(4, 12)  returns 48
-= 48
+((1 + 1) + (5 + 5)) * 4 = 12 * 4 = 48
 ```
 
 `SendChain` returns `ChainAsyncResult` which follows AsyncResult's interface. So you can do a blocking call and wait for the result of the whole chain:
@@ -995,190 +793,13 @@ for _, result := range results {
 }
 ```
 
-### Periodic Tasks & Workflows
-
-Machinery now supports scheduling periodic tasks and workflows. See examples bellow.
-
-#### Periodic Tasks
-
-```go
-import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-)
-
-signature := &tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-  },
-}
-
-err := server.RegisterPeriodTask("0 6 * * ?", "periodic-task", signature)
-if err != nil {
-  // failed to register periodic task
-}
-```
-
-#### Periodic Groups
-
-```go
-import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
-)
-
-signature1 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-  },
-}
-
-signature2 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-  },
-}
-
-group, _ := tasks.NewGroup(&signature1, &signature2)
-err := server.RegisterPeriodGroup("0 6 * * ?", "periodic-group", group)
-if err != nil {
-  // failed to register periodic group
-}
-```
-
-#### Periodic Chains
-
-```go
-import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
-)
-
-signature1 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-  },
-}
-
-signature2 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-  },
-}
-
-signature3 := tasks.Signature{
-  Name: "multiply",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 4,
-    },
-  },
-}
-
-chain, _ := tasks.NewChain(&signature1, &signature2, &signature3)
-err := server.RegisterPeriodChain("0 6 * * ?", "periodic-chain", chain)
-if err != nil {
-  // failed to register periodic chain
-}
-```
-
-#### Chord
-
-```go
-import (
-  "github.com/RichardKnop/machinery/v1/tasks"
-  "github.com/RichardKnop/machinery/v1"
-)
-
-signature1 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-    {
-      Type:  "int64",
-      Value: 1,
-    },
-  },
-}
-
-signature2 := tasks.Signature{
-  Name: "add",
-  Args: []tasks.Arg{
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-    {
-      Type:  "int64",
-      Value: 5,
-    },
-  },
-}
-
-signature3 := tasks.Signature{
-  Name: "multiply",
-}
-
-group := tasks.NewGroup(&signature1, &signature2)
-chord, _ := tasks.NewChord(group, &signature3)
-err := server.RegisterPeriodChord("0 6 * * ?", "periodic-chord", chord)
-if err != nil {
-  // failed to register periodic chord
-}
-```
-
 ### Development
 
 #### Requirements
 
 * Go
 * RabbitMQ (optional)
-* Redis
-* Memcached (optional)
-* MongoDB (optional)
+* Redis (optional)
 
 On OS X systems, you can install requirements using [Homebrew](http://brew.sh/):
 
@@ -1186,8 +807,6 @@ On OS X systems, you can install requirements using [Homebrew](http://brew.sh/):
 brew install go
 brew install rabbitmq
 brew install redis
-brew install memcached
-brew install mongodb
 ```
 
 Or optionally use the corresponding [Docker](http://docker.io/) containers:
@@ -1195,8 +814,6 @@ Or optionally use the corresponding [Docker](http://docker.io/) containers:
 ```
 docker run -d -p 5672:5672 rabbitmq
 docker run -d -p 6379:6379 redis
-docker run -d -p 11211:11211 memcached
-docker run -d -p 27017:27017 mongo
 docker run -d -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
 ```
 
@@ -1222,22 +839,11 @@ This will basically run docker-compose command:
 
 Alternative approach is to setup a development environment on your machine.
 
-In order to enable integration tests, you will need to install all required services (RabbitMQ, Redis, Memcache, MongoDB) and export these environment variables:
+In order to enable integration tests, you will need to install all required services (RabbitMQ, Redis) and export these environment variables:
 
 ```sh
 export AMQP_URL=amqp://guest:guest@localhost:5672/
 export REDIS_URL=localhost:6379
-export MEMCACHE_URL=localhost:11211
-export MONGODB_URL=localhost:27017
-```
-
-To run integration tests against an SQS instance, you will need to create a "test_queue" in SQS and export these environment variables:
-
-```sh
-export SQS_URL=https://YOUR_SQS_URL
-export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
-export AWS_DEFAULT_REGION=YOUR_AWS_DEFAULT_REGION
 ```
 
 Then just run:

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/RichardKnop/machinery/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/config"
 )
 
 func TestRedisGetPendingTasks(t *testing.T) {

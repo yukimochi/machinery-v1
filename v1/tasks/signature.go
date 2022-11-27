@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"fmt"
-	"github.com/RichardKnop/machinery/v1/utils"
+	"github.com/yukimochi/machinery-v1/v1/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,8 +61,6 @@ type Signature struct {
 	ChordCallback  *Signature
 	//MessageGroupId for Broker, e.g. SQS
 	BrokerMessageGroupId string
-	//ReceiptHandle of SQS Message
-	SQSReceiptHandle string
 	// StopTaskDeletionOnError used with sqs when we want to send failed messages to dlq,
 	// and don't want machinery to delete from source queue
 	StopTaskDeletionOnError bool

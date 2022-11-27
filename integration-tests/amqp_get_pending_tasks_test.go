@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RichardKnop/machinery/v1"
-	"github.com/RichardKnop/machinery/v1/backends/result"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/tasks"
+	"github.com/yukimochi/machinery-v1/v1/backends/result"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 func TestAmqpGetPendingTasks(t *testing.T) {
@@ -76,7 +75,7 @@ func TestAmqpGetPendingTasks(t *testing.T) {
 		compareSigs(t, signatures[i], pendingMessages[i])
 	}
 
-	worker := server.(*machinery.Server).NewWorker("test_worker", 0)
+	worker := server.NewWorker("test_worker", 0)
 	go worker.Launch()
 	defer worker.Quit()
 	for _, r := range results {

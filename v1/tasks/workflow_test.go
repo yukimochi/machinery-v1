@@ -3,8 +3,8 @@ package tasks_test
 import (
 	"testing"
 
-	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/stretchr/testify/assert"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 func TestNewChain(t *testing.T) {

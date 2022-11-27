@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RichardKnop/machinery/v1/brokers/errs"
-	"github.com/RichardKnop/machinery/v1/brokers/iface"
-	"github.com/RichardKnop/machinery/v1/common"
-	"github.com/RichardKnop/machinery/v1/config"
-	"github.com/RichardKnop/machinery/v1/log"
-	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
+	"github.com/yukimochi/machinery-v1/v1/brokers/errs"
+	"github.com/yukimochi/machinery-v1/v1/brokers/iface"
+	"github.com/yukimochi/machinery-v1/v1/common"
+	"github.com/yukimochi/machinery-v1/v1/config"
+	"github.com/yukimochi/machinery-v1/v1/log"
+	"github.com/yukimochi/machinery-v1/v1/tasks"
 )
 
 type AMQPConnection struct {

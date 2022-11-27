@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
-	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/yukimochi/machinery-v1/v1/config"
 )
 
 var configYAMLData = `---
@@ -22,9 +22,6 @@ amqp:
   queue_binding_args:
     image-type: png
     x-match: any
-sqs:
-  receive_wait_time_seconds: 123
-  receive_visibility_timeout: 456
 redis:
   max_idle: 12
   max_active: 123
@@ -38,9 +35,6 @@ redis:
   delayed_tasks_key: delayed_tasks_key
   master_name: master_name
 no_unix_signals: true
-dynamodb:
-  task_states_table: task_states_table
-  group_metas_table: group_metas_table
 `
 
 func TestReadFromFile(t *testing.T) {
@@ -75,9 +69,6 @@ func TestNewFromYaml(t *testing.T) {
 	assert.Equal(t, "png", cnf.AMQP.QueueBindingArgs["image-type"])
 	assert.Equal(t, 123, cnf.AMQP.PrefetchCount)
 
-	assert.Equal(t, 123, cnf.SQS.WaitTimeSeconds)
-	assert.Equal(t, 456, *cnf.SQS.VisibilityTimeout)
-
 	assert.Equal(t, 12, cnf.Redis.MaxIdle)
 	assert.Equal(t, 123, cnf.Redis.MaxActive)
 	assert.Equal(t, 456, cnf.Redis.IdleTimeout)
@@ -91,7 +82,4 @@ func TestNewFromYaml(t *testing.T) {
 	assert.Equal(t, "master_name", cnf.Redis.MasterName)
 
 	assert.Equal(t, true, cnf.NoUnixSignals)
-
-	assert.Equal(t, "task_states_table", cnf.DynamoDB.TaskStatesTable)
-	assert.Equal(t, "group_metas_table", cnf.DynamoDB.GroupMetasTable)
 }

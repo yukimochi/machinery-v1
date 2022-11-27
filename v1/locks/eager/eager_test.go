@@ -1,9 +1,9 @@
 package eager
 
 import (
-	lockiface "github.com/RichardKnop/machinery/v1/locks/iface"
-	"github.com/RichardKnop/machinery/v1/utils"
 	"github.com/stretchr/testify/assert"
+	lockiface "github.com/yukimochi/machinery-v1/v1/locks/iface"
+	"github.com/yukimochi/machinery-v1/v1/utils"
 	"testing"
 	"time"
 )
