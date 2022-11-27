@@ -30,8 +30,6 @@ func init() {
 	app = cli.NewApp()
 	app.Name = "machinery"
 	app.Usage = "machinery worker and send example tasks with machinery send"
-	app.Author = "Richard Knop"
-	app.Email = "risoknop@gmail.com"
 	app.Version = "0.0.0"
 }
 
@@ -66,18 +64,15 @@ func main() {
 
 func startServer() (*machinery.Server, error) {
 	cnf := &config.Config{
+		Broker:          "amqp://guest:guest@localhost:5672/",
 		DefaultQueue:    "machinery_tasks",
+		ResultBackend:   "amqp://guest:guest@localhost:5672/",
 		ResultsExpireIn: 3600,
-		Broker:          "redis://localhost:6379",
-		ResultBackend:   "redis://localhost:6379",
-		Redis: &config.RedisConfig{
-			MaxIdle:                3,
-			IdleTimeout:            240,
-			ReadTimeout:            15,
-			WriteTimeout:           15,
-			ConnectTimeout:         15,
-			NormalTasksPollPeriod:  1000,
-			DelayedTasksPollPeriod: 500,
+		AMQP: &config.AMQPConfig{
+			Exchange:      "machinery_exchange",
+			ExchangeType:  "direct",
+			BindingKey:    "machinery_task",
+			PrefetchCount: 3,
 		},
 	}
 
