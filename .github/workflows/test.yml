@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
+      - run: |
+          git fetch --prune --unshallow
       - name: Execute Test Script
         run: |
           make ci
