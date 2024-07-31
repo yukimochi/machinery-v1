@@ -4,8 +4,6 @@ services:
   sut:
     container_name: machinery_sut
     image: machinery_sut:latest
-    volumes:
-      - "./:/go/src/github.com/yukimochi/machinery-v1"
     depends_on:
       - rabbitmq
       - redis
