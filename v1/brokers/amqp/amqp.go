@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/streadway/amqp"
 	"github.com/yukimochi/machinery-v1/v1/brokers/errs"
 	"github.com/yukimochi/machinery-v1/v1/brokers/iface"
 	"github.com/yukimochi/machinery-v1/v1/common"
 	"github.com/yukimochi/machinery-v1/v1/config"
 	"github.com/yukimochi/machinery-v1/v1/log"
 	"github.com/yukimochi/machinery-v1/v1/tasks"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type AMQPConnection struct {
